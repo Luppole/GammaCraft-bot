@@ -343,6 +343,16 @@ process.on('SIGINT', async () => {
     }
   }
   
+  // Cleanup Minecraft server monitoring
+  try {
+    const mcserverCommand = require('./commands/mcserver');
+    if (mcserverCommand.cleanup) {
+      mcserverCommand.cleanup();
+    }
+  } catch (error) {
+    // Command may not exist yet
+  }
+  
   await closeDatabase();
   console.log('Goodbye!');
   process.exit(0);
@@ -356,6 +366,16 @@ process.on('SIGTERM', async () => {
     for (const intervalId of Object.values(client.scheduledIntervals)) {
       clearInterval(intervalId as NodeJS.Timeout);
     }
+  }
+  
+  // Cleanup Minecraft server monitoring
+  try {
+    const mcserverCommand = require('./commands/mcserver');
+    if (mcserverCommand.cleanup) {
+      mcserverCommand.cleanup();
+    }
+  } catch (error) {
+    // Command may not exist yet
   }
   
   await closeDatabase();
