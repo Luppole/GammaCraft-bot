@@ -1,0 +1,18 @@
+🎮 **GammaCraft Bot Help** 🎮
+
+**Need assistance?** Contact our admin team: <@ADMIN_ROLE>
+
+**📋 Available Commands:**
+• `/ip` - Get the Minecraft server IP
+• `/level` - Check your XP and level
+• `/leaderboard` - View the server leaderboard
+• `/help` - Show this help message
+
+**🏆 Level System:**
+Earn XP by chatting! Level up to unlock special roles and rewards.
+
+**📍 Useful Channels:**
+• Server info: #general
+• Get support: #help
+
+**👋 Thanks for being part of GammaCraft!**

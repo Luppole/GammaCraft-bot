@@ -1,0 +1,53 @@
+version: '3.8'
+
+services:
+  mysql:
+    image: mysql:8.0
+    container_name: gammacraft-mysql
+    environment:
+      MYSQL_ROOT_PASSWORD: rootpassword
+      MYSQL_DATABASE: gammacraft_bot
+      MYSQL_USER: botuser
+      MYSQL_PASSWORD: botpassword
+    ports:
+      - "3306:3306"
+    volumes:
+      - mysql_data:/var/lib/mysql
+    restart: unless-stopped
+    command: --default-authentication-plugin=mysql_native_password
+    networks:
+      - bot-network
+
+  bot:
+    build: .
+    container_name: gammacraft-bot
+    env_file:
+      - .env
+    volumes:
+      - ./data:/usr/src/app/data
+      - ./resources:/usr/src/app/resources:ro
+    restart: unless-stopped
+    environment:
+      NODE_ENV: production
+      DB_HOST: mysql
+      DB_USER: botuser
+      DB_PASSWORD: botpassword
+      DB_NAME: gammacraft_bot
+    networks:
+      - bot-network
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "10m"
+        max-file: "3"
+    depends_on:
+      - mysql
+
+networks:
+  bot-network:
+    driver: bridge
+
+volumes:
+  mysql_data:
+  bot-data:
+    driver: local
