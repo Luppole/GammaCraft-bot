@@ -121,176 +121,186 @@ client.on(Events.MessageCreate, async (message) => {
     // Save user data to database
     await UserLevelDAO.saveUserLevel(userData);
     
+    // Handle chat bridge
+    try {
+      const mcchatCommand = require('./commands/mcchat');
+      if (mcchatCommand.handleDiscordMessage) {
+        await mcchatCommand.handleDiscordMessage(message);
+      }
+    } catch (error) {
+      // Chat bridge command may not exist yet
+    }
+    
   } catch (error) {
     console.error('Error in XP system:', error);
   }
 });
 
 // Function to initialize scheduled messages from database
-async function initializeScheduledMessages(client: any) {
-  try {
-    console.log('🔄 Loading scheduled messages from database...');
-    
-    for (const guild of client.guilds.cache.values()) {
-      const scheduledMessages = await ScheduledMessageDAO.getGuildScheduledMessages(guild.id);
-      
-      for (const schedule of scheduledMessages) {
-        if (!schedule.active) continue;
+    async function initializeScheduledMessages(client: any) {
+      try {
+        console.log('🔄 Loading scheduled messages from database...');
         
-        const channel = guild.channels.cache.get(schedule.channelId);
-        if (!channel || !channel.isTextBased()) continue;
-        
-        console.log(`⏰ Starting scheduled message "${schedule.name}" for guild ${guild.name}`);
-        
-        const intervalMs = schedule.intervalHours * 60 * 60 * 1000;
-        
-        const intervalId = setInterval(async () => {
-          try {
-            await channel.send(schedule.message);
-            await ScheduledMessageDAO.updateLastSent(schedule.guildId, schedule.name, Date.now());
-            console.log(`📤 Sent scheduled message "${schedule.name}" to #${channel.name}`);
-          } catch (error) {
-            console.error(`Failed to send scheduled message "${schedule.name}":`, error);
+        for (const guild of client.guilds.cache.values()) {
+          const scheduledMessages = await ScheduledMessageDAO.getGuildScheduledMessages(guild.id);
+          
+          for (const schedule of scheduledMessages) {
+            if (!schedule.active) continue;
+            
+            const channel = guild.channels.cache.get(schedule.channelId);
+            if (!channel || !channel.isTextBased()) continue;
+            
+            console.log(`⏰ Starting scheduled message "${schedule.name}" for guild ${guild.name}`);
+            
+            const intervalMs = schedule.intervalHours * 60 * 60 * 1000;
+            
+            const intervalId = setInterval(async () => {
+              try {
+                await channel.send(schedule.message);
+                await ScheduledMessageDAO.updateLastSent(schedule.guildId, schedule.name, Date.now());
+                console.log(`📤 Sent scheduled message "${schedule.name}" to #${channel.name}`);
+              } catch (error) {
+                console.error(`Failed to send scheduled message "${schedule.name}":`, error);
+              }
+            }, intervalMs);
+            
+            // Store the interval ID for cleanup (in memory)
+            client.scheduledIntervals = client.scheduledIntervals || {};
+            client.scheduledIntervals[`${schedule.guildId}-${schedule.name}`] = intervalId;
           }
-        }, intervalMs);
-        
-        // Store the interval ID for cleanup (in memory)
-        client.scheduledIntervals = client.scheduledIntervals || {};
-        client.scheduledIntervals[`${schedule.guildId}-${schedule.name}`] = intervalId;
-      }
-    }
-    
-    console.log('✅ Scheduled messages initialized');
-  } catch (error) {
-    console.error('❌ Failed to initialize scheduled messages:', error);
-  }
-}
-
-// Auto-update stat channels and handle welcome messages on member add/remove or role update
-client.on(Events.GuildMemberAdd, async (member) => {
-  // Handle welcome message and role assignment
-  await handleMemberJoin(member);
-  // Update stats channels
-  await updateStatsChannels(member);
-});
-client.on(Events.GuildMemberRemove, updateStatsChannels);
-client.on(Events.GuildMemberUpdate, updateStatsChannels);
-
-async function updateStatsChannels(memberOrOld: any) {
-  const guild = memberOrOld.guild || memberOrOld;
-  if (!guild) return;
-
-  try {
-    // Get stats channel config from database
-    const statsConfig = await StatsChannelDAO.getStatsChannel(guild.id);
-    if (!statsConfig) return;
-
-    const { memberChannelName, roleChannelName, roleId, categoryId } = statsConfig;
-
-    // Fetch all guild members to ensure accurate counting
-    await guild.members.fetch();
-    
-    const memberCount = guild.memberCount;
-    
-    // Debug logging
-    console.log(`Auto-update: Role ID: ${roleId}`);
-    console.log(`Auto-update: Total members in cache: ${guild.members.cache.size}`);
-    
-    const membersWithRole = guild.members.cache.filter((m: any) =>
-      m.roles.cache.has(roleId)
-    );
-    console.log(`Auto-update: Members with role: ${membersWithRole.size}`);
-    
-    const roleCount = membersWithRole.size;
-
-    // Find channels
-    const category = guild.channels.cache.get(categoryId);
-    if (!category) return;
-
-    const memberChannel = guild.channels.cache.find(
-      (ch: any) =>
-        ch.parentId === categoryId && ch.name.startsWith(memberChannelName)
-    );
-    if (memberChannel)
-      await memberChannel.setName(`${memberChannelName}: ${memberCount}`);
-
-    const roleChannel = guild.channels.cache.find(
-      (ch: any) =>
-        ch.parentId === categoryId && ch.name.startsWith(roleChannelName)
-    );
-    if (roleChannel)
-      await roleChannel.setName(`${roleChannelName}: ${roleCount}`);
-      
-  } catch (error) {
-    console.error('Error updating stats channels:', error);
-  }
-}
-
-// Welcome message handler for new members
-async function handleMemberJoin(member: any) {
-  try {
-    const guild = member.guild;
-    const MEMBER_ROLE_ID = '1392928339924357183';
-    
-    // Assign member role
-    try {
-      const memberRole = guild.roles.cache.get(MEMBER_ROLE_ID);
-      if (memberRole) {
-        await member.roles.add(memberRole);
-        console.log(`✅ Assigned member role to ${member.user.tag}`);
-      } else {
-        console.log(`⚠️ Member role not found: ${MEMBER_ROLE_ID}`);
-      }
-    } catch (roleError) {
-      console.error('Error assigning member role:', roleError);
-    }
-
-    // Find a suitable channel for welcome message (general, welcome, or first text channel)
-    const welcomeChannel = guild.channels.cache.find((channel: any) => 
-      channel.type === 0 && ( // Text channel
-        channel.name.includes('general') ||
-        channel.name.includes('welcome') ||
-        channel.name.includes('chat')
-      )
-    ) || guild.channels.cache.find((channel: any) => channel.type === 0); // First text channel as fallback
-
-    if (!welcomeChannel) {
-      console.log('⚠️ No suitable channel found for welcome message');
-      return;
-    }
-
-    // Create simple welcome embed
-    const { EmbedBuilder } = require('discord.js');
-    const welcomeEmbed = new EmbedBuilder()
-      .setColor(0x00FF7F) // Spring green color
-      .setTitle(`🎉 Welcome to ${guild.name}!`)
-      .setDescription(`Hey ${member.user}, glad to have you here!`)
-      .setThumbnail(member.user.displayAvatarURL({ size: 256 }))
-      .addFields(
-        {
-          name: ' Server Info',
-          value: `**Total Members:** ${guild.memberCount.toLocaleString()}\n**You are member #${guild.memberCount}**`,
-          inline: false
         }
-      )
-      .setFooter({ 
-        text: `Welcome to ${guild.name}`, 
-        iconURL: guild.iconURL() || undefined 
-      })
-      .setTimestamp();
-
-    // Send welcome message
-    await welcomeChannel.send({ 
-      content: `👋 ${member.user}`, 
-      embeds: [welcomeEmbed] 
+        
+        console.log('✅ Scheduled messages initialized');
+      } catch (error) {
+        console.error('❌ Failed to initialize scheduled messages:', error);
+      }
+    }
+    
+    // Auto-update stat channels and handle welcome messages on member add/remove or role update
+    client.on(Events.GuildMemberAdd, async (member) => {
+      // Handle welcome message and role assignment
+      await handleMemberJoin(member);
+      // Update stats channels
+      await updateStatsChannels(member);
     });
-
-    console.log(`🎉 Sent welcome message for ${member.user.tag} in #${welcomeChannel.name}`);
-
-  } catch (error) {
-    console.error('Error handling member join:', error);
-  }
-}
+    client.on(Events.GuildMemberRemove, updateStatsChannels);
+    client.on(Events.GuildMemberUpdate, updateStatsChannels);
+    
+    async function updateStatsChannels(memberOrOld: any) {
+      const guild = memberOrOld.guild || memberOrOld;
+      if (!guild) return;
+    
+      try {
+        // Get stats channel config from database
+        const statsConfig = await StatsChannelDAO.getStatsChannel(guild.id);
+        if (!statsConfig) return;
+    
+        const { memberChannelName, roleChannelName, roleId, categoryId } = statsConfig;
+    
+        // Fetch all guild members to ensure accurate counting
+        await guild.members.fetch();
+        
+        const memberCount = guild.memberCount;
+        
+        // Debug logging
+        console.log(`Auto-update: Role ID: ${roleId}`);
+        console.log(`Auto-update: Total members in cache: ${guild.members.cache.size}`);
+        
+        const membersWithRole = guild.members.cache.filter((m: any) =>
+          m.roles.cache.has(roleId)
+        );
+        console.log(`Auto-update: Members with role: ${membersWithRole.size}`);
+        
+        const roleCount = membersWithRole.size;
+    
+        // Find channels
+        const category = guild.channels.cache.get(categoryId);
+        if (!category) return;
+    
+        const memberChannel = guild.channels.cache.find(
+          (ch: any) =>
+            ch.parentId === categoryId && ch.name.startsWith(memberChannelName)
+        );
+        if (memberChannel)
+          await memberChannel.setName(`${memberChannelName}: ${memberCount}`);
+    
+        const roleChannel = guild.channels.cache.find(
+          (ch: any) =>
+            ch.parentId === categoryId && ch.name.startsWith(roleChannelName)
+        );
+        if (roleChannel)
+          await roleChannel.setName(`${roleChannelName}: ${roleCount}`);
+          
+      } catch (error) {
+        console.error('Error updating stats channels:', error);
+      }
+    }
+    
+    // Welcome message handler for new members
+    async function handleMemberJoin(member: any) {
+      try {
+        const guild = member.guild;
+        const MEMBER_ROLE_ID = '1392928339924357183';
+        
+        // Assign member role
+        try {
+          const memberRole = guild.roles.cache.get(MEMBER_ROLE_ID);
+          if (memberRole) {
+            await member.roles.add(memberRole);
+            console.log(`✅ Assigned member role to ${member.user.tag}`);
+          } else {
+            console.log(`⚠️ Member role not found: ${MEMBER_ROLE_ID}`);
+          }
+        } catch (roleError) {
+          console.error('Error assigning member role:', roleError);
+        }
+    
+        // Find a suitable channel for welcome message (general, welcome, or first text channel)
+        const welcomeChannel = guild.channels.cache.find((channel: any) => 
+          channel.type === 0 && ( // Text channel
+            channel.name.includes('general') ||
+            channel.name.includes('welcome') ||
+            channel.name.includes('chat')
+          )
+        ) || guild.channels.cache.find((channel: any) => channel.type === 0); // First text channel as fallback
+    
+        if (!welcomeChannel) {
+          console.log('⚠️ No suitable channel found for welcome message');
+          return;
+        }
+    
+        // Create simple welcome embed
+        const { EmbedBuilder } = require('discord.js');
+        const welcomeEmbed = new EmbedBuilder()
+          .setColor(0x00FF7F) // Spring green color
+          .setTitle(`🎉 Welcome to ${guild.name}!`)
+          .setDescription(`Hey ${member.user}, glad to have you here!`)
+          .setThumbnail(member.user.displayAvatarURL({ size: 256 }))
+          .addFields(
+            {
+              name: ' Server Info',
+              value: `**Total Members:** ${guild.memberCount.toLocaleString()}\n**You are member #${guild.memberCount}**`,
+              inline: false
+            }
+          )
+          .setFooter({ 
+            text: `Welcome to ${guild.name}`, 
+            iconURL: guild.iconURL() || undefined 
+          })
+          .setTimestamp();
+    
+        // Send welcome message
+        await welcomeChannel.send({ 
+          content: `👋 ${member.user}`, 
+          embeds: [welcomeEmbed] 
+        });
+    
+        console.log(`🎉 Sent welcome message for ${member.user.tag} in #${welcomeChannel.name}`);
+    
+      } catch (error) {
+        console.error('Error handling member join:', error);
+      }
+    }
 
 import { registerCommands } from "./registerCommands";
 registerCommands(client)
@@ -353,6 +363,16 @@ process.on('SIGINT', async () => {
     // Command may not exist yet
   }
   
+  // Cleanup Minecraft chat bridge
+  try {
+    const mcchatCommand = require('./commands/mcchat');
+    if (mcchatCommand.cleanup) {
+      mcchatCommand.cleanup();
+    }
+  } catch (error) {
+    // Command may not exist yet
+  }
+  
   await closeDatabase();
   console.log('Goodbye!');
   process.exit(0);
@@ -373,6 +393,16 @@ process.on('SIGTERM', async () => {
     const mcserverCommand = require('./commands/mcserver');
     if (mcserverCommand.cleanup) {
       mcserverCommand.cleanup();
+    }
+  } catch (error) {
+    // Command may not exist yet
+  }
+  
+  // Cleanup Minecraft chat bridge
+  try {
+    const mcchatCommand = require('./commands/mcchat');
+    if (mcchatCommand.cleanup) {
+      mcchatCommand.cleanup();
     }
   } catch (error) {
     // Command may not exist yet

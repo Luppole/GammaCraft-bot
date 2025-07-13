@@ -16,6 +16,7 @@
     "dotenv": "^17.2.0",
     "minecraft-server-util": "^5.4.4",
     "mysql2": "^3.14.2",
+    "rcon": "^1.1.0",
     "sqlite3": "^5.1.7"
   },
   "devDependencies": {
