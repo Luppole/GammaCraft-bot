@@ -23,9 +23,9 @@ export async function initializeDatabase(): Promise<void> {
         connection = await mysql.createConnection(dbConfig);
         console.log('✅ Connected to MySQL database successfully');
 
-        // Create database if it doesn't exist
+        // Create database if it doesn't exist - use query instead of execute for USE command
         await connection.execute(`CREATE DATABASE IF NOT EXISTS \`${dbConfig.database}\``);
-        await connection.execute(`USE \`${dbConfig.database}\``);
+        await connection.query(`USE \`${dbConfig.database}\``);
 
         // Create tables
         await createTables();

@@ -24,7 +24,7 @@ export const data = new SlashCommandBuilder()
     );
 
 export async function execute(interaction: any) {
-    await interaction.deferReply({ ephemeral: true });
+    await interaction.deferReply({ flags: 64 });
     
     // Only allow admins
     if (!interaction.memberPermissions?.has(PermissionFlagsBits.Administrator)) {

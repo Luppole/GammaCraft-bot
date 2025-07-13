@@ -34,7 +34,7 @@ export const data = new SlashCommandBuilder()
     );
 
 export async function execute(interaction: any) {
-    await interaction.deferReply({ ephemeral: true });
+    await interaction.deferReply({ flags: 64 });
     
     // Only allow admins
     if (!interaction.memberPermissions?.has(PermissionFlagsBits.Administrator)) {
@@ -220,18 +220,19 @@ export async function handleDiscordMessage(message: any) {
             .replace(/<@!?\d+>/g, '[mention]') // Replace mentions
             .replace(/<#\d+>/g, '[channel]') // Replace channel mentions
             .replace(/<:\w+:\d+>/g, '[emoji]') // Replace custom emojis
-            .replace(/[^\x00-\x7F]/g, '?') // Replace non-ASCII characters
+            .replace(/[^\u0000-\u007F\u0590-\u05FF]/g, '?') // Keep ASCII + Hebrew characters
             .substring(0, 256); // Limit length
 
         if (cleanContent.trim()) {
-            const mcMessage = `tellraw @a {"text":"[Discord] ${message.author.displayName}: ${cleanContent}","color":"blue"}`;
+            // Use say command instead of tellraw for better compatibility
+            const mcMessage = `say [Discord] ${message.author.displayName}: ${cleanContent}`;
             await bridge.rcon.send(mcMessage);
             console.log(`[CHAT BRIDGE] Discord -> MC: ${message.author.displayName}: ${cleanContent}`);
         }
 
         // Handle attachments
         if (message.attachments.size > 0) {
-            const attachmentMsg = `tellraw @a {"text":"[Discord] ${message.author.displayName} sent ${message.attachments.size} attachment(s)","color":"blue"}`;
+            const attachmentMsg = `say [Discord] ${message.author.displayName} sent ${message.attachments.size} file(s)`;
             await bridge.rcon.send(attachmentMsg);
         }
 

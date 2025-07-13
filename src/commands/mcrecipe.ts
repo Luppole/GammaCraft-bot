@@ -57,7 +57,7 @@ export async function execute(interaction: any) {
     if (!recipe) {
         return interaction.reply({ 
             content: 'Recipe not found! Available recipes: ' + Object.keys(recipes).join(', '),
-            ephemeral: true 
+            flags: 64 
         });
     }
 

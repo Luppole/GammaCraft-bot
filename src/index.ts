@@ -313,8 +313,19 @@ client.on(Events.InteractionCreate, async (interaction) => {
   if (!interaction.isChatInputCommand()) return;
 
   try {
-    const command = require(`./commands/${interaction.commandName}`);
-    await command.execute(interaction);
+    // Set a timeout for command execution
+    const commandPromise = (async () => {
+      const command = require(`./commands/${interaction.commandName}`);
+      await command.execute(interaction);
+    })();
+
+    // Race between command execution and timeout
+    await Promise.race([
+      commandPromise,
+      new Promise((_, reject) => 
+        setTimeout(() => reject(new Error('Command timeout')), 14000) // 14 seconds timeout
+      )
+    ]);
     
   } catch (error) {
     console.error(`Error executing command ${interaction.commandName}:`, error);
@@ -324,9 +335,9 @@ client.on(Events.InteractionCreate, async (interaction) => {
       if (!interaction.replied && !interaction.deferred) {
         await interaction.reply({
           content: "There was an error executing this command!",
-          ephemeral: true
+          flags: 64 // Use flags instead of ephemeral
         });
-      } else if (interaction.deferred) {
+      } else if (interaction.deferred && !interaction.replied) {
         await interaction.editReply({
           content: "There was an error executing this command!"
         });
