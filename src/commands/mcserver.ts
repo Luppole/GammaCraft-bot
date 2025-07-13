@@ -142,7 +142,7 @@ async function updateChannelStatus(channel: any) {
         const maxPlayers = serverStatus.players.max;
         const serverVersion = serverStatus.version.name;
 
-        let channelName = `🟢 Server Online (${onlinePlayers}/${maxPlayers})`;
+        let channelName = `🟢 למעלה (${onlinePlayers}/${maxPlayers})`;
         
         // Limit channel name length (Discord has a 100 character limit)
         if (channelName.length > 100) {
@@ -155,7 +155,7 @@ async function updateChannelStatus(channel: any) {
 
     } catch (error) {
         // Server is offline or unreachable
-        await channel.setName('🔴 Server Offline');
+        await channel.setName('🔴 למטה');
         console.log(`[MC STATUS] ${MINECRAFT_SERVER_IP} - Offline or unreachable`);
     }
 }
