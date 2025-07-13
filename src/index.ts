@@ -323,7 +323,7 @@ client.on(Events.InteractionCreate, async (interaction) => {
     await Promise.race([
       commandPromise,
       new Promise((_, reject) => 
-        setTimeout(() => reject(new Error('Command timeout')), 14000) // 14 seconds timeout
+        setTimeout(() => reject(new Error('Command timeout')), 10000) // 10 seconds timeout
       )
     ]);
     

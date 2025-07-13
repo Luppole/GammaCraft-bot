@@ -12,9 +12,13 @@ export async function execute(interaction: any) {
     await interaction.deferReply();
 
     try {
-        const serverStatus = await status(MINECRAFT_SERVER_IP, MINECRAFT_SERVER_PORT, {
-            timeout: 5000
-        });
+        // Faster timeout to prevent Discord interaction timeout
+        const serverStatus = await Promise.race([
+            status(MINECRAFT_SERVER_IP, MINECRAFT_SERVER_PORT, { timeout: 3000 }),
+            new Promise((_, reject) => 
+                setTimeout(() => reject(new Error('Server check timeout')), 3000)
+            )
+        ]) as any;
 
         const embed = new EmbedBuilder()
             .setColor(0x00FF00)

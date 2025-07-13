@@ -28,9 +28,13 @@ export async function execute(interaction: any) {
         // Current status check
         let currentStatus: ServerCheck;
         try {
-            const serverStatus = await status(MINECRAFT_SERVER_IP, MINECRAFT_SERVER_PORT, {
-                timeout: 5000
-            });
+            // Faster timeout to prevent Discord interaction timeout
+            const serverStatus = await Promise.race([
+                status(MINECRAFT_SERVER_IP, MINECRAFT_SERVER_PORT, { timeout: 2000 }),
+                new Promise((_, reject) => 
+                    setTimeout(() => reject(new Error('Server check timeout')), 2000)
+                )
+            ]) as any;
             currentStatus = {
                 timestamp: Date.now(),
                 online: true,

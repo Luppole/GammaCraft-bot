@@ -77,14 +77,27 @@ async function startChatBridge(interaction: any, guild: any) {
             });
         }
 
-        // Test RCON connection
+        // Test RCON connection with timeout
         let rcon: any | null = null;
         try {
             rcon = new Rcon(MINECRAFT_SERVER_IP, RCON_PORT, RCON_PASSWORD);
-            await rcon.connect();
             
-            // Test command
-            await rcon.send('list');
+            // Add timeout to RCON connection
+            await Promise.race([
+                rcon.connect(),
+                new Promise((_, reject) => 
+                    setTimeout(() => reject(new Error('RCON connection timeout')), 3000)
+                )
+            ]);
+            
+            // Test command with timeout
+            await Promise.race([
+                rcon.send('list'),
+                new Promise((_, reject) => 
+                    setTimeout(() => reject(new Error('RCON command timeout')), 2000)
+                )
+            ]);
+            
             console.log('[CHAT BRIDGE] RCON connection successful');
             
         } catch (rconError) {

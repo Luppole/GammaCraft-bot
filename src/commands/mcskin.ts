@@ -21,6 +21,7 @@ export async function execute(interaction: any) {
         });
     }
 
+    // Quick response - don't wait for image validation
     try {
         // Using public APIs for Minecraft skins
         const skinUrl = `https://mc-heads.net/avatar/${username}/100`;
@@ -51,9 +52,9 @@ export async function execute(interaction: any) {
         await interaction.editReply({ embeds: [embed] });
 
     } catch (error) {
-        console.error('Error fetching skin:', error);
+        console.error('Error creating skin embed:', error);
         await interaction.editReply({ 
-            content: `❌ Could not fetch skin for player "${username}". Make sure the username is correct and the player exists.` 
+            content: `❌ Could not create skin display for player "${username}". Please try again.` 
         });
     }
 }
