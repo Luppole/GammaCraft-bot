@@ -101,11 +101,16 @@ export class MusicManager {
 
     public async addSong(query: string, member: GuildMember): Promise<Song | null> {
         try {
-            let songInfo;
-            
             if (ytdl.validateURL(query)) {
-                // Direct YouTube URL
-                songInfo = await ytdl.getInfo(query);
+                // Direct YouTube URL with timeout
+                const infoPromise = ytdl.getInfo(query);
+                const songInfo = await Promise.race([
+                    infoPromise,
+                    new Promise<never>((_, reject) => 
+                        setTimeout(() => reject(new Error('YouTube info timeout')), 8000)
+                    )
+                ]);
+                
                 const song: Song = {
                     title: songInfo.videoDetails.title,
                     url: query,
@@ -117,12 +122,31 @@ export class MusicManager {
                 this.queue.push(song);
                 return song;
             } else {
-                // Search query
-                const searchResults = await search(query, { limit: 1, source: { youtube: 'video' } });
+                // Search query with timeout
+                const searchPromise = search(query, { limit: 1, source: { youtube: 'video' } });
+                const searchResults = await Promise.race([
+                    searchPromise,
+                    new Promise<never>((_, reject) => 
+                        setTimeout(() => reject(new Error('Search timeout')), 8000)
+                    )
+                ]);
+                
                 if (searchResults.length === 0) return null;
                 
                 const video = searchResults[0];
-                const videoInfo = await video_basic_info(video.url);
+                
+                // Get additional video info with timeout
+                try {
+                    const videoInfoPromise = video_basic_info(video.url);
+                    await Promise.race([
+                        videoInfoPromise,
+                        new Promise<never>((_, reject) => 
+                            setTimeout(() => reject(new Error('Video info timeout')), 5000)
+                        )
+                    ]);
+                } catch (infoError) {
+                    console.log('Warning: Could not get detailed video info, using basic info');
+                }
                 
                 const song: Song = {
                     title: video.title || 'שיר לא ידוע',
