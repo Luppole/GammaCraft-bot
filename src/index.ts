@@ -10,6 +10,7 @@ const client: Client = new Client({
     GatewayIntentBits.GuildMessages,
     GatewayIntentBits.MessageContent,
     GatewayIntentBits.GuildMembers, // Required for member counting
+    GatewayIntentBits.GuildVoiceStates, // Required for voice connections
   ],
 });
 

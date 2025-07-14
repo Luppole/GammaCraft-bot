@@ -165,6 +165,11 @@ export async function execute(interaction: any) {
                     name: '👋 `/disconnect`',
                     value: 'נתק את הבוט מהערוץ הקולי\nהסרה מוחלטת מהערוץ',
                     inline: false
+                },
+                {
+                    name: '🗑️ `/clearqueue`',
+                    value: 'נקה את תור השירים\nמחק את כל השירים שממתינים',
+                    inline: false
                 }
             )
             .setFooter({ text: 'פקודות מנהל - זמינות למנהלים בלבד' });
