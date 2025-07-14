@@ -220,35 +220,72 @@ export class MusicManager {
                 return;
             }
 
-            // Create stream with fresh info
-            const stream = ytdl.downloadFromInfo(freshInfo, {
-                filter: 'audioonly',
-                quality: 'highestaudio',
-                highWaterMark: 1 << 25,
-                requestOptions: {
-                    headers: {
-                        'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36'
+            // Create stream with multiple fallback options
+            let stream;
+            let resource;
+            
+            try {
+                // Try method 1: Use downloadFromInfo (preferred)
+                stream = ytdl.downloadFromInfo(freshInfo, {
+                    filter: 'audioonly',
+                    quality: 'highestaudio',
+                    highWaterMark: 1 << 25,
+                    requestOptions: {
+                        headers: {
+                            'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36'
+                        }
                     }
-                }
-            });
+                });
 
-            // Handle stream errors immediately
-            stream.on('error', (error) => {
-                console.error('שגיאה בזרם השמע:', error);
-                this.isPlaying = false;
-                
-                if (this.textChannel) {
-                    this.textChannel.send(`❌ שגיאה בניגון "${this.currentSong?.title}". עובר לשיר הבא...`);
+                // Handle stream errors immediately
+                stream.on('error', (error) => {
+                    console.error('שגיאה בזרם השמע:', error);
+                    this.isPlaying = false;
+                    
+                    if (this.textChannel) {
+                        this.textChannel.send(`❌ שגיאה בניגון "${this.currentSong?.title}". עובר לשיר הבא...`);
+                    }
+                    
+                    this.playNext();
+                    return;
+                });
+
+                // Create audio resource with fallback options
+                try {
+                    // Try with opus if available
+                    resource = createAudioResource(stream, { 
+                        inlineVolume: true,
+                        metadata: {
+                            title: this.currentSong.title
+                        }
+                    });
+                } catch (resourceError) {
+                    console.log('Trying alternative resource creation...');
+                    // Fallback: Create without opus
+                    resource = createAudioResource(stream, { 
+                        inlineVolume: true
+                    });
                 }
                 
-                this.playNext();
-                return;
-            });
-
-            // Create audio resource
-            const resource = createAudioResource(stream, { 
-                inlineVolume: true
-            });
+            } catch (streamError) {
+                console.error('שגיאה ביצירת זרם:', streamError);
+                
+                // Fallback method 2: Try direct URL streaming
+                try {
+                    stream = ytdl(this.currentSong.url, {
+                        filter: 'audioonly',
+                        quality: 'lowestaudio', // Use lower quality as fallback
+                        highWaterMark: 1 << 23, // Smaller buffer
+                    });
+                    
+                    resource = createAudioResource(stream, { 
+                        inlineVolume: true
+                    });
+                } catch (fallbackError) {
+                    const errorMsg = fallbackError instanceof Error ? fallbackError.message : 'Unknown error';
+                    throw new Error(`Both streaming methods failed: ${errorMsg}`);
+                }
+            }
             
             if (resource.volume) {
                 resource.volume.setVolume(this.volume);
@@ -267,8 +304,8 @@ export class MusicManager {
                 if (error instanceof Error) {
                     if (error.message.includes('410')) {
                         errorMessage = '❌ הקישור לשיר פג תוקף.';
-                    } else if (error.message.includes('FFmpeg')) {
-                        errorMessage = '❌ שגיאה בעיבוד השמע. FFmpeg לא מותקן בשרת.';
+                    } else if (error.message.includes('FFmpeg') || error.message.includes('avconv')) {
+                        errorMessage = '⚠️ שרת השמע אינו זמין. מנסה שיר אחר...';
                     } else if (error.message.includes('timeout')) {
                         errorMessage = '❌ זמן קצוב לטעינת השיר.';
                     }
