@@ -160,11 +160,15 @@ export class MusicManager {
                 return song;
             } else {
                 // Search query with timeout
-                const searchPromise = search(query, { limit: 1, source: { youtube: 'video' } });
+                const searchPromise = search(query, { 
+                    limit: 1, 
+                    source: { youtube: 'video' },
+                    unblurNSFWThumbnails: false
+                });
                 const searchResults = await Promise.race([
                     searchPromise,
                     new Promise<never>((_, reject) => 
-                        setTimeout(() => reject(new Error('Search timeout')), 8000)
+                        setTimeout(() => reject(new Error('Search timeout')), 10000)
                     )
                 ]);
                 
@@ -172,19 +176,7 @@ export class MusicManager {
                 
                 const video = searchResults[0];
                 
-                // Get additional video info with timeout
-                try {
-                    const videoInfoPromise = video_basic_info(video.url);
-                    await Promise.race([
-                        videoInfoPromise,
-                        new Promise<never>((_, reject) => 
-                            setTimeout(() => reject(new Error('Video info timeout')), 5000)
-                        )
-                    ]);
-                } catch (infoError) {
-                    console.log('Warning: Could not get detailed video info, using basic info');
-                }
-                
+                // Get basic info without detailed video info to avoid delays
                 const song: Song = {
                     title: video.title || 'שיר לא ידוע',
                     url: video.url,
@@ -209,37 +201,48 @@ export class MusicManager {
         this.currentSong = this.queue.shift()!;
 
         try {
-            // Get fresh URL for the video to avoid 410 errors
-            let streamUrl = this.currentSong.url;
-            
-            // If it's a YouTube URL, get fresh info to avoid expiration
-            if (ytdl.validateURL(this.currentSong.url)) {
-                try {
-                    const freshInfo = await ytdl.getInfo(this.currentSong.url);
-                    // Use the original URL but get fresh stream
-                    streamUrl = this.currentSong.url;
-                } catch (error) {
-                    console.error('שגיאה בקבלת מידע עדכני:', error);
-                    // Continue with original URL
-                }
-            }
-
-            const stream = ytdl(streamUrl, {
+            // Create the audio stream with better error handling
+            const stream = ytdl(this.currentSong.url, {
                 filter: 'audioonly',
-                highWaterMark: 1 << 25,
                 quality: 'highestaudio',
+                highWaterMark: 1 << 25,
                 requestOptions: {
                     headers: {
                         'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36'
                     }
-                }
+                },
+                // Add additional options to handle expired URLs
+                dlChunkSize: 1024 * 1024, // 1MB chunks
             });
 
-            // Handle stream errors
+            // Handle stream errors immediately
             stream.on('error', (error) => {
                 console.error('שגיאה בזרם השמע:', error);
                 this.isPlaying = false;
+                
+                if (this.textChannel) {
+                    this.textChannel.send(`❌ שגיאה בניגון "${this.currentSong?.title}". עובר לשיר הבא...`);
+                }
+                
                 this.playNext();
+                return;
+            });
+
+            // Wait a moment for the stream to start
+            await new Promise((resolve, reject) => {
+                const timeout = setTimeout(() => {
+                    reject(new Error('Stream start timeout'));
+                }, 5000);
+
+                stream.on('readable', () => {
+                    clearTimeout(timeout);
+                    resolve(void 0);
+                });
+
+                stream.on('error', (error) => {
+                    clearTimeout(timeout);
+                    reject(error);
+                });
             });
 
             const resource = createAudioResource(stream, { 
@@ -251,12 +254,24 @@ export class MusicManager {
             }
             
             this.player.play(resource);
+            
         } catch (error) {
             console.error('שגיאה בניגון:', error);
             this.isPlaying = false;
             
             if (this.textChannel) {
-                this.textChannel.send('❌ שגיאה בניגון השיר. עובר לשיר הבא...');
+                // Provide more specific error messages
+                let errorMessage = '❌ שגיאה בניגון השיר.';
+                
+                if (error instanceof Error) {
+                    if (error.message.includes('410')) {
+                        errorMessage = '❌ הקישור לשיר פג תוקף. מחפש שיר חדש...';
+                    } else if (error.message.includes('FFmpeg')) {
+                        errorMessage = '❌ שגיאה בעיבוד השמע. FFmpeg לא מותקן בשרת.';
+                    }
+                }
+                
+                this.textChannel.send(`${errorMessage} עובר לשיר הבא...`);
             }
             
             this.playNext();
