@@ -79,22 +79,59 @@ export class MusicManager {
 
     public async join(voiceChannel: VoiceChannel, textChannel: TextChannel): Promise<boolean> {
         try {
+            // Check if already connected to this channel
+            if (this.connection && this.connection.state.status === VoiceConnectionStatus.Ready) {
+                this.textChannel = textChannel;
+                return true;
+            }
+
+            // Destroy existing connection if any
+            if (this.connection) {
+                this.connection.destroy();
+            }
+
             this.connection = joinVoiceChannel({
                 channelId: voiceChannel.id,
                 guildId: voiceChannel.guild.id,
                 adapterCreator: voiceChannel.guild.voiceAdapterCreator,
+                selfDeaf: false, // Don't deafen the bot
+                selfMute: false
             });
 
             this.connection.subscribe(this.player);
             this.textChannel = textChannel;
 
-            this.connection.on(VoiceConnectionStatus.Disconnected, () => {
-                this.cleanup();
+            // Wait for connection to be ready
+            await new Promise<void>((resolve, reject) => {
+                const timeout = setTimeout(() => {
+                    reject(new Error('Connection timeout'));
+                }, 10000);
+
+                this.connection?.on(VoiceConnectionStatus.Ready, () => {
+                    clearTimeout(timeout);
+                    resolve();
+                });
+
+                this.connection?.on(VoiceConnectionStatus.Disconnected, () => {
+                    clearTimeout(timeout);
+                    this.cleanup();
+                    reject(new Error('Connection failed'));
+                });
+
+                this.connection?.on('error', (error) => {
+                    clearTimeout(timeout);
+                    console.error('שגיאת חיבור:', error);
+                    reject(error);
+                });
             });
 
             return true;
         } catch (error) {
             console.error('שגיאה בהתחברות לערוץ קולי:', error);
+            if (this.connection) {
+                this.connection.destroy();
+                this.connection = null;
+            }
             return false;
         }
     }
@@ -172,19 +209,56 @@ export class MusicManager {
         this.currentSong = this.queue.shift()!;
 
         try {
-            const stream = ytdl(this.currentSong.url, {
+            // Get fresh URL for the video to avoid 410 errors
+            let streamUrl = this.currentSong.url;
+            
+            // If it's a YouTube URL, get fresh info to avoid expiration
+            if (ytdl.validateURL(this.currentSong.url)) {
+                try {
+                    const freshInfo = await ytdl.getInfo(this.currentSong.url);
+                    // Use the original URL but get fresh stream
+                    streamUrl = this.currentSong.url;
+                } catch (error) {
+                    console.error('שגיאה בקבלת מידע עדכני:', error);
+                    // Continue with original URL
+                }
+            }
+
+            const stream = ytdl(streamUrl, {
                 filter: 'audioonly',
                 highWaterMark: 1 << 25,
-                quality: 'highestaudio'
+                quality: 'highestaudio',
+                requestOptions: {
+                    headers: {
+                        'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36'
+                    }
+                }
             });
 
-            const resource = createAudioResource(stream, { inlineVolume: true });
-            resource.volume?.setVolume(this.volume);
+            // Handle stream errors
+            stream.on('error', (error) => {
+                console.error('שגיאה בזרם השמע:', error);
+                this.isPlaying = false;
+                this.playNext();
+            });
+
+            const resource = createAudioResource(stream, { 
+                inlineVolume: true
+            });
+            
+            if (resource.volume) {
+                resource.volume.setVolume(this.volume);
+            }
             
             this.player.play(resource);
         } catch (error) {
             console.error('שגיאה בניגון:', error);
             this.isPlaying = false;
+            
+            if (this.textChannel) {
+                this.textChannel.send('❌ שגיאה בניגון השיר. עובר לשיר הבא...');
+            }
+            
             this.playNext();
         }
     }

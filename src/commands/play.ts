@@ -15,7 +15,8 @@ export async function execute(interaction: any) {
         const member = interaction.member as GuildMember;
         const query = interaction.options.getString('שיר');
 
-        if (!member.voice.channel) {
+        // Check if user is in voice channel
+        if (!member.voice?.channel) {
             return interaction.reply({
                 content: '❌ אתה צריך להיות בערוץ קולי כדי לנגן מוזיקה!',
                 ephemeral: true
@@ -23,11 +24,23 @@ export async function execute(interaction: any) {
         }
 
         const voiceChannel = member.voice.channel as VoiceChannel;
-        const permissions = voiceChannel.permissionsFor(interaction.client.user);
+        
+        // Check bot permissions
+        const botMember = interaction.guild.members.me;
+        const permissions = voiceChannel.permissionsFor(botMember);
 
         if (!permissions?.has(['Connect', 'Speak'])) {
             return interaction.reply({
                 content: '❌ אין לי הרשאות להתחבר או לדבר בערוץ הקולי הזה!',
+                ephemeral: true
+            });
+        }
+
+        // Check if bot is already in a different voice channel
+        const existingConnection = interaction.guild.members.me?.voice?.channel;
+        if (existingConnection && existingConnection.id !== voiceChannel.id) {
+            return interaction.reply({
+                content: `❌ אני כבר מחובר לערוץ ${existingConnection.name}! השתמש ב \`/disconnect\` תחילה.`,
                 ephemeral: true
             });
         }
@@ -38,13 +51,16 @@ export async function execute(interaction: any) {
         const musicManager = MusicManager.getInstance(interaction.guild.id);
         
         // Join voice channel if not already connected (with timeout)
-        const connectPromise = musicManager.join(voiceChannel, interaction.channel);
-        const connected = await Promise.race([
-            connectPromise,
-            new Promise<boolean>((_, reject) => 
-                setTimeout(() => reject(new Error('Connection timeout')), 5000)
-            )
-        ]);
+        let connected = true;
+        if (!existingConnection || existingConnection.id !== voiceChannel.id) {
+            const connectPromise = musicManager.join(voiceChannel, interaction.channel);
+            connected = await Promise.race([
+                connectPromise,
+                new Promise<boolean>((_, reject) => 
+                    setTimeout(() => reject(new Error('Connection timeout')), 5000)
+                )
+            ]);
+        }
 
         if (!connected) {
             return interaction.editReply('❌ לא הצלחתי להתחבר לערוץ הקולי!');
@@ -55,7 +71,7 @@ export async function execute(interaction: any) {
         const song = await Promise.race([
             songPromise,
             new Promise<null>((_, reject) => 
-                setTimeout(() => reject(new Error('Search timeout')), 10000)
+                setTimeout(() => reject(new Error('Search timeout')), 15000)
             )
         ]);
 
@@ -82,7 +98,12 @@ export async function execute(interaction: any) {
 
         // Start playing if not already playing (don't wait for this)
         if (!status.isPlaying) {
-            musicManager.play().catch(console.error);
+            musicManager.play().catch(error => {
+                console.error('שגיאה בהתחלת ניגון:', error);
+                if (interaction.channel) {
+                    interaction.channel.send('❌ שגיאה בהתחלת הניגון. נסה שוב.');
+                }
+            });
         }
 
     } catch (error) {
@@ -91,7 +112,7 @@ export async function execute(interaction: any) {
         // Check if interaction is still valid before responding
         if (!interaction.replied && !interaction.deferred) {
             await interaction.reply('❌ אירעה שגיאה בניסיון לנגן את השיר.');
-        } else if (interaction.deferred) {
+        } else if (interaction.deferred && !interaction.replied) {
             await interaction.editReply('❌ אירעה שגיאה בניסיון לנגן את השיר.');
         }
     }
