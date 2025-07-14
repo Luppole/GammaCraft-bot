@@ -201,18 +201,35 @@ export class MusicManager {
         this.currentSong = this.queue.shift()!;
 
         try {
-            // Create the audio stream with better error handling
-            const stream = ytdl(this.currentSong.url, {
+            // Get fresh video info to avoid 410 errors
+            let freshInfo;
+            try {
+                freshInfo = await Promise.race([
+                    ytdl.getInfo(this.currentSong.url),
+                    new Promise<never>((_, reject) => 
+                        setTimeout(() => reject(new Error('Info timeout')), 5000)
+                    )
+                ]);
+            } catch (infoError) {
+                console.error('שגיאה בקבלת מידע עדכני:', infoError);
+                this.isPlaying = false;
+                if (this.textChannel) {
+                    this.textChannel.send(`❌ לא ניתן לנגן את "${this.currentSong.title}" - הקישור לא תקין. עובר לשיר הבא...`);
+                }
+                this.playNext();
+                return;
+            }
+
+            // Create stream with fresh info
+            const stream = ytdl.downloadFromInfo(freshInfo, {
                 filter: 'audioonly',
                 quality: 'highestaudio',
                 highWaterMark: 1 << 25,
                 requestOptions: {
                     headers: {
-                        'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36'
+                        'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36'
                     }
-                },
-                // Add additional options to handle expired URLs
-                dlChunkSize: 1024 * 1024, // 1MB chunks
+                }
             });
 
             // Handle stream errors immediately
@@ -228,23 +245,7 @@ export class MusicManager {
                 return;
             });
 
-            // Wait a moment for the stream to start
-            await new Promise((resolve, reject) => {
-                const timeout = setTimeout(() => {
-                    reject(new Error('Stream start timeout'));
-                }, 5000);
-
-                stream.on('readable', () => {
-                    clearTimeout(timeout);
-                    resolve(void 0);
-                });
-
-                stream.on('error', (error) => {
-                    clearTimeout(timeout);
-                    reject(error);
-                });
-            });
-
+            // Create audio resource
             const resource = createAudioResource(stream, { 
                 inlineVolume: true
             });
@@ -265,9 +266,11 @@ export class MusicManager {
                 
                 if (error instanceof Error) {
                     if (error.message.includes('410')) {
-                        errorMessage = '❌ הקישור לשיר פג תוקף. מחפש שיר חדש...';
+                        errorMessage = '❌ הקישור לשיר פג תוקף.';
                     } else if (error.message.includes('FFmpeg')) {
                         errorMessage = '❌ שגיאה בעיבוד השמע. FFmpeg לא מותקן בשרת.';
+                    } else if (error.message.includes('timeout')) {
+                        errorMessage = '❌ זמן קצוב לטעינת השיר.';
                     }
                 }
                 

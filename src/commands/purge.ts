@@ -18,29 +18,35 @@ export const data = new SlashCommandBuilder()
     .setDefaultMemberPermissions(PermissionFlagsBits.ManageMessages);
 
 export async function execute(interaction: any) {
-    await interaction.deferReply({ ephemeral: true });
-
-    const guild = interaction.guild;
-    if (!guild) {
-        return interaction.editReply({ content: 'פקודה זו יכולה לשמש רק בשרת.' });
-    }
-
-    // Check if user has manage messages permissions
-    if (!interaction.member.permissions.has(PermissionFlagsBits.ManageMessages)) {
-        return interaction.editReply({ content: '❌ אין לך הרשאה לנהל הודעות.' });
-    }
-
     try {
+        // Immediately defer the reply to prevent timeout
+        await interaction.deferReply({ ephemeral: true });
+
+        const guild = interaction.guild;
+        if (!guild) {
+            return interaction.editReply({ content: 'פקודה זו יכולה לשמש רק בשרת.' });
+        }
+
+        // Check if user has manage messages permissions
+        if (!interaction.member.permissions.has(PermissionFlagsBits.ManageMessages)) {
+            return interaction.editReply({ content: '❌ אין לך הרשאה לנהל הודעות.' });
+        }
+
         const amount = interaction.options.getInteger('amount');
         const targetUser = interaction.options.getUser('user');
         const channel = interaction.channel;
 
         if (!channel || !channel.isTextBased()) {
-            return interaction.editReply({ content: '❌ This command can only be used in text channels.' });
+            return interaction.editReply({ content: '❌ פקודה זו יכולה לשמש רק בערוצי טקסט.' });
         }
 
-        // Fetch messages
-        const messages = await channel.messages.fetch({ limit: amount + 1 }); // +1 to account for the command
+        // Fetch messages with timeout protection
+        const messages = await Promise.race([
+            channel.messages.fetch({ limit: amount + 1 }), // +1 to account for the command
+            new Promise((_, reject) => 
+                setTimeout(() => reject(new Error('Fetch timeout')), 5000)
+            )
+        ]) as Collection<string, Message>;
 
         // Filter messages if user specified
         let messagesToDelete: Message[] = Array.from(messages.values());
@@ -53,7 +59,7 @@ export async function execute(interaction: any) {
         messagesToDelete = messagesToDelete.filter((msg: Message) => msg.id !== interaction.id);
 
         if (messagesToDelete.length === 0) {
-            return interaction.editReply({ content: '❌ No messages found to delete.' });
+            return interaction.editReply({ content: '❌ לא נמצאו הודעות למחיקה.' });
         }
 
         // Discord only allows bulk delete for messages less than 14 days old
@@ -83,21 +89,34 @@ export async function execute(interaction: any) {
                     deletedCount += 1;
                     await new Promise(resolve => setTimeout(resolve, 1000)); // Rate limit protection
                 } catch (error) {
-                    console.error('Error deleting old message:', error);
+                    console.error('שגיאה במחיקת הודעה ישנה:', error);
                 }
             }
         }
 
         const responseText = targetUser 
-            ? `✅ Deleted **${deletedCount}** message(s) from **${targetUser.tag}**.`
-            : `✅ Deleted **${deletedCount}** message(s).`;
+            ? `✅ נמחקו **${deletedCount}** הודעות של **${targetUser.tag}**.`
+            : `✅ נמחקו **${deletedCount}** הודעות.`;
 
         await interaction.editReply({ content: responseText });
 
-        console.log(`🧹 ${interaction.user.tag} purged ${deletedCount} messages in ${channel.name}${targetUser ? ` from ${targetUser.tag}` : ''}`);
+        console.log(`🧹 ${interaction.user.tag} מחק ${deletedCount} הודעות ב ${channel.name}${targetUser ? ` של ${targetUser.tag}` : ''}`);
 
     } catch (error) {
-        console.error('Error in purge command:', error);
-        await interaction.editReply({ content: '❌ Failed to delete messages. Please check my permissions and try again.' });
+        console.error('שגיאה בפקודת purge:', error);
+        
+        // Better error handling for already replied interactions
+        try {
+            if (!interaction.replied && !interaction.deferred) {
+                await interaction.reply({ 
+                    content: '❌ כשל במחיקת הודעות. בדוק את ההרשאות ונסה שוב.', 
+                    ephemeral: true 
+                });
+            } else if (interaction.deferred && !interaction.replied) {
+                await interaction.editReply({ content: '❌ כשל במחיקת הודעות. בדוק את ההרשאות ונסה שוב.' });
+            }
+        } catch (replyError) {
+            console.error('שגיאה בשליחת תגובת שגיאה:', replyError);
+        }
     }
 }
