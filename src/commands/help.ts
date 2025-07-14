@@ -4,13 +4,13 @@ import { parseText } from '../helperFunctions/parseText';
 
 export const data = new SlashCommandBuilder()
     .setName('help')
-    .setDescription('Get help.');
+    .setDescription('קבל עזרה');
 
 export async function execute(interaction: any) {
     try {
         const rawText = await readFile(require.resolve('../../resources/help.txt'), 'utf-8');
         const parsedText = parseText(rawText, interaction);
-        const helpText = `${parsedText}\n\n💡 **Tip:** Use \`/commands\` for a complete guide to all bot features and commands!`;
+        const helpText = `${parsedText}\n\n💡 **עצה:** השתמש ב \`/commands\` למדריך מלא על כל הפקודות והתכונות של הבוט!`;
         
         await interaction.reply({ 
             content: helpText, 
@@ -18,6 +18,6 @@ export async function execute(interaction: any) {
             allowedMentions: { roles: ['1392586826413379695'] }
         });
     } catch (error) {
-        await interaction.reply({ content: 'Failed to load help information.\n\n💡 **Tip:** Use `/commands` for a complete guide to all bot features!', flags: 64 });
+        await interaction.reply({ content: 'נכשל בטעינת מידע העזרה.\n\n💡 **עצה:** השתמש ב `/commands` למדריך מלא על הפקודות!', flags: 64 });
     }
 }

@@ -3,10 +3,10 @@ import { UserLevelDAO } from '../dao';
 
 export const data = new SlashCommandBuilder()
     .setName('level')
-    .setDescription('Check your or another user\'s level and XP')
+    .setDescription('בדוק את הרמה והנסיון שלך או של משתמש אחר')
     .addUserOption(option =>
         option.setName('user')
-            .setDescription('The user to check (optional)')
+            .setDescription('המשתמש לבדיקה (אופציונלי)')
             .setRequired(false)
     );
 
@@ -18,7 +18,7 @@ export async function execute(interaction: any) {
     const guild = interaction.guild;
     
     if (!guild) {
-        return interaction.editReply({ content: 'This command can only be used in a server.' });
+        return interaction.editReply({ content: 'פקודה זו יכולה לשמש רק בשרת.' });
     }
 
     try {
@@ -44,21 +44,21 @@ export async function execute(interaction: any) {
 
         const embed = new EmbedBuilder()
             .setColor(0x00AE86)
-            .setTitle(`📊 Level Stats for ${targetUser.displayName}`)
+            .setTitle(`📊 סטטיסטיקות רמה עבור ${targetUser.displayName}`)
             .setThumbnail(targetUser.displayAvatarURL())
             .addFields(
-                { name: '🏆 Level', value: userData.level.toString(), inline: true },
-                { name: '⭐ Total XP', value: userData.xp.toString(), inline: true },
-                { name: '💬 Messages', value: userData.messages.toString(), inline: true },
-                { name: '📈 Progress', value: `${progressXP}/${levelTotalXP} XP`, inline: true },
-                { name: '🎯 Next Level', value: `${neededXP} XP needed`, inline: true }
+                { name: '🏆 רמה', value: userData.level.toString(), inline: true },
+                { name: '⭐ נסיון כולל', value: userData.xp.toString(), inline: true },
+                { name: '💬 הודעות', value: userData.messages.toString(), inline: true },
+                { name: '📈 התקדמות', value: `${progressXP}/${levelTotalXP} נסיון`, inline: true },
+                { name: '🎯 רמה הבאה', value: `נדרש ${neededXP} נסיון`, inline: true }
             )
-            .setFooter({ text: `Earn XP by being active in the server!` })
+            .setFooter({ text: `צבור נסיון על ידי פעילות בשרת!` })
             .setTimestamp();
 
         await interaction.editReply({ embeds: [embed] });
     } catch (error) {
         console.error('Error in level command:', error);
-        await interaction.editReply({ content: 'Failed to retrieve level information.' });
+        await interaction.editReply({ content: 'נכשל באחזור מידע הרמה.' });
     }
 }

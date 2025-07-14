@@ -1,18 +1,18 @@
-🎮 **GammaCraft Bot Help** 🎮
+🎮 **עזרה לבוט GammaCraft** 🎮
 
-**Need assistance?** Contact our admin team: <@ADMIN_ROLE>
+**צריך עזרה?** פנה לצוות המנהלים שלנו: <@ADMIN_ROLE>
 
-**📋 Available Commands:**
-• `/ip` - Get the Minecraft server IP
-• `/level` - Check your XP and level
-• `/leaderboard` - View the server leaderboard
-• `/help` - Show this help message
+**📋 פקודות זמינות:**
+• `/ip` - קבל את כתובת ה-IP של שרת המיינקראפט
+• `/level` - בדוק את הנסיון והרמה שלך
+• `/leaderboard` - צפה בלוח התוצאות של השרת
+• `/help` - הצג הודעת עזרה זו
 
-**🏆 Level System:**
-Earn XP by chatting! Level up to unlock special roles and rewards.
+**🏆 מערכת הרמות:**
+צבור נסיון על ידי כתיבה בצ'אט! עלה ברמה כדי לפתוח תפקידים מיוחדים ופרסים.
 
-**📍 Useful Channels:**
-• Server info: #general
-• Get support: #help
+**📍 ערוצים שימושיים:**
+• מידע שרת: #general
+• קבלת תמיכה: #help
 
-**👋 Thanks for being part of GammaCraft!**
+**👋 תודה שאתה חלק מ-GammaCraft!**

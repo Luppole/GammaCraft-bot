@@ -2,7 +2,7 @@ import { SlashCommandBuilder, EmbedBuilder } from 'discord.js';
 
 export const data = new SlashCommandBuilder()
     .setName('ping')
-    .setDescription('Test bot responsiveness and latency');
+    .setDescription('בדוק זמן תגובה והשהייה של הבוט');
 
 export async function execute(interaction: any) {
     // Test the new deferReply pattern
@@ -18,21 +18,21 @@ export async function execute(interaction: any) {
     
     const embed = new EmbedBuilder()
         .setColor(0x00FF00)
-        .setTitle('🏓 Pong!')
+        .setTitle('🏓 פונג!')
         .addFields(
             {
-                name: '⚡ Response Time',
+                name: '⚡ זמן תגובה',
                 value: `${latency}ms`,
                 inline: true
             },
             {
-                name: '📡 API Latency',
+                name: '📡 השהיית API',
                 value: `${apiLatency}ms`,
                 inline: true
             },
             {
-                name: '🔧 Status',
-                value: 'All systems operational',
+                name: '🔧 מצב',
+                value: 'כל המערכות פועלות',
                 inline: true
             }
         )

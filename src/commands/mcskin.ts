@@ -2,10 +2,10 @@ import { SlashCommandBuilder, EmbedBuilder } from 'discord.js';
 
 export const data = new SlashCommandBuilder()
     .setName('mcskin')
-    .setDescription('View a Minecraft player\'s skin')
+    .setDescription('צפה בסקין של שחקן מיינקראפט')
     .addStringOption(option =>
         option.setName('username')
-            .setDescription('Minecraft username')
+            .setDescription('שם משתמש במיינקראפט')
             .setRequired(true)
     );
 
@@ -17,44 +17,62 @@ export async function execute(interaction: any) {
     // Validate username
     if (!/^[a-zA-Z0-9_]{3,16}$/.test(username)) {
         return interaction.editReply({ 
-            content: 'Invalid username! Minecraft usernames must be 3-16 characters long and contain only letters, numbers, and underscores.' 
+            content: 'שם משתמש לא תקין! שמות משתמש במיינקראפט חייבים להיות באורך 3-16 תווים ולכלול רק אותיות, מספרים וקו תחתון.' 
         });
     }
 
-    // Quick response - don't wait for image validation
     try {
-        // Using public APIs for Minecraft skins
-        const skinUrl = `https://mc-heads.net/avatar/${username}/100`;
-        const bodyUrl = `https://mc-heads.net/body/${username}/100`;
-        const headUrl = `https://mc-heads.net/head/${username}/100`;
+        // First, verify the player exists using Mojang API
+        const playerResponse = await fetch(`https://api.mojang.com/users/profiles/minecraft/${username}`);
+        
+        if (!playerResponse.ok) {
+            return interaction.editReply({ 
+                content: `❌ שחקן "${username}" לא נמצא! אנא בדוק את שם המשתמש ונסה שוב.` 
+            });
+        }
+
+        const playerData = await playerResponse.json();
+        const actualUsername = playerData.name; // Get the actual capitalization
+        const uuid = playerData.id;
+
+        // Using multiple APIs for better reliability
+        const skinUrl = `https://mc-heads.net/avatar/${actualUsername}/100`;
+        const bodyUrl = `https://mc-heads.net/body/${actualUsername}/100`;
+        const headUrl = `https://mc-heads.net/head/${actualUsername}/100`;
+        const fullBodyUrl = `https://crafatar.com/renders/body/${uuid}?overlay`;
         
         const embed = new EmbedBuilder()
             .setColor(0x00AA00)
-            .setTitle(`👤 ${username}'s Minecraft Skin`)
-            .setDescription(`Showing skin for player: **${username}**`)
+            .setTitle(`👤 הסקין של ${actualUsername}`)
+            .setDescription(`מציג סקין עבור שחקן: **${actualUsername}**\nUUID: \`${uuid}\``)
             .setThumbnail(headUrl)
-            .setImage(bodyUrl)
+            .setImage(fullBodyUrl)
             .addFields(
                 {
-                    name: '🔗 Skin Links',
-                    value: `[Avatar](${skinUrl}) | [Body](${bodyUrl}) | [Head](${headUrl})`,
+                    name: '🔗 קישורי סקין',
+                    value: `[אווטאר](${skinUrl}) | [גוף](${bodyUrl}) | [ראש](${headUrl})`,
                     inline: false
                 },
                 {
-                    name: '🎨 Skin Viewer',
-                    value: `[View in 3D](https://namemc.com/profile/${username})`,
+                    name: '🎨 מציג סקין',
+                    value: `[צפייה תלת מימד](https://namemc.com/profile/${actualUsername}) | [Crafatar](https://crafatar.com/renders/body/${uuid})`,
+                    inline: false
+                },
+                {
+                    name: '📋 פרטי שחקן',
+                    value: `שם משתמש: \`${actualUsername}\`\nUUID: \`${uuid}\``,
                     inline: false
                 }
             )
-            .setFooter({ text: 'Skin data provided by mc-heads.net' })
+            .setFooter({ text: 'נתוני סקין מסופקים על ידי mc-heads.net ו-crafatar.com' })
             .setTimestamp();
 
         await interaction.editReply({ embeds: [embed] });
 
     } catch (error) {
-        console.error('Error creating skin embed:', error);
+        console.error('Error fetching skin data:', error);
         await interaction.editReply({ 
-            content: `❌ Could not create skin display for player "${username}". Please try again.` 
+            content: `❌ לא ניתן לטעון נתוני סקין עבור שחקן "${username}". השחקן עלול לא להתקיים או שהשירות זמנית לא זמין.` 
         });
     }
 }
