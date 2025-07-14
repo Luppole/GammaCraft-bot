@@ -45,6 +45,46 @@ export async function execute(interaction: any) {
                 name: '❓ `/help`',
                 value: 'קבל מידע עזרה בסיסי\nמציג מדריך קצר ואת הפקודות העיקריות',
                 inline: false
+            },
+            {
+                name: '🎵 `/play [שיר]`',
+                value: 'נגן מוזיקה מיוטיוב\nחפש שיר לפי שם או הכנס קישור יוטיוב ישירות',
+                inline: false
+            },
+            {
+                name: '📋 `/queue [עמוד]`',
+                value: 'הצג את תור השירים הנוכחי\nראה איזה שירים ממתינים בתור',
+                inline: false
+            },
+            {
+                name: '⏭️ `/skip`',
+                value: 'דלג על השיר הנוכחי\nעבור לשיר הבא בתור',
+                inline: false
+            },
+            {
+                name: '⏸️ `/pause`',
+                value: 'השהה או המשך את המוזיקה\nעצור זמנית או המשך ניגון',
+                inline: false
+            },
+            {
+                name: '🎵 `/nowplaying`',
+                value: 'הצג את השיר שמתנגן כרגע\nראה פרטים על השיר הנוכחי',
+                inline: false
+            },
+            {
+                name: '🔊 `/volume [עוצמה]`',
+                value: 'שנה את עוצמת הקול (0-100)\nקבע את עוצמת המוזיקה',
+                inline: false
+            },
+            {
+                name: '🔀 `/shuffle`',
+                value: 'ערבב את תור השירים באופן אקראי\nשנה את סדר השירים בתור',
+                inline: false
+            },
+            {
+                name: '🔁 `/loop [מצב]`',
+                value: 'שנה מצב חזרה של המוזיקה\nחזור על שיר, תור או בטל חזרה',
+                inline: false
             }
         )
         .setFooter({ text: 'פקודות משתמש - זמינות לכולם' });
@@ -114,6 +154,16 @@ export async function execute(interaction: any) {
                 {
                     name: '📊 `/setupstats`',
                     value: 'הגדר ערוצי סטטיסטיקות אוטומטיים\nמעקב אוטומטי אחר מספר חברים',
+                    inline: false
+                },
+                {
+                    name: '⏹️ `/stop`',
+                    value: 'עצור את המוזיקה ונקה את התור\nעצירה מלאה של המוזיקה',
+                    inline: false
+                },
+                {
+                    name: '👋 `/disconnect`',
+                    value: 'נתק את הבוט מהערוץ הקולי\nהסרה מוחלטת מהערוץ',
                     inline: false
                 }
             )
