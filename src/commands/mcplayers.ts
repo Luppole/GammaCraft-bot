@@ -6,7 +6,7 @@ const MINECRAFT_SERVER_PORT = 25565;
 
 export const data = new SlashCommandBuilder()
     .setName('mcplayers')
-    .setDescription('Show who is currently online on the Minecraft server');
+    .setDescription('הצג מי מחובר כרגע לשרת המיינקראפט');
 
 export async function execute(interaction: any) {
     await interaction.deferReply();
@@ -22,12 +22,12 @@ export async function execute(interaction: any) {
 
         const embed = new EmbedBuilder()
             .setColor(0x00FF00)
-            .setTitle('🎮 Minecraft Server Players')
+            .setTitle('🎮 שחקני שרת מיינקראפט')
             .setThumbnail('https://via.placeholder.com/64x64/00FF00/FFFFFF?text=MC')
             .addFields(
                 {
-                    name: '📊 Server Info',
-                    value: `**IP:** ${MINECRAFT_SERVER_IP}\n**Version:** ${serverStatus.version.name}\n**Players:** ${serverStatus.players.online}/${serverStatus.players.max}`,
+                    name: '📊 מידע שרת',
+                    value: `**IP:** ${MINECRAFT_SERVER_IP}\n**גרסה:** ${serverStatus.version.name}\n**שחקנים:** ${serverStatus.players.online}/${serverStatus.players.max}`,
                     inline: false
                 }
             )
@@ -40,14 +40,14 @@ export async function execute(interaction: any) {
                 .join('\n');
             
             embed.addFields({
-                name: '👥 Online Players',
-                value: playerList || 'No players visible',
+                name: '👥 שחקנים מחוברים',
+                value: playerList || 'אין שחקנים נראים',
                 inline: false
             });
         } else if (serverStatus.players.online > 0) {
             embed.addFields({
-                name: '👥 Online Players',
-                value: `${serverStatus.players.online} players online (names hidden by server)`,
+                name: '👥 שחקנים מחוברים',
+                value: `${serverStatus.players.online} שחקנים מחוברים (שמות מוסתרים על ידי השרת)`,
                 inline: false
             });
         } else {

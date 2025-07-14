@@ -6,7 +6,7 @@ const MINECRAFT_SERVER_PORT = 25565;
 
 export const data = new SlashCommandBuilder()
     .setName('mcinfo')
-    .setDescription('Get detailed information about the Minecraft server');
+    .setDescription('קבל מידע מפורט על שרת המיינקראפט');
 
 export async function execute(interaction: any) {
     await interaction.deferReply();
@@ -22,12 +22,12 @@ export async function execute(interaction: any) {
 
         const embed = new EmbedBuilder()
             .setColor(0x55AA55)
-            .setTitle('🏰 Minecraft Server Information')
+            .setTitle('🏰 מידע שרת מיינקראפט')
             .setThumbnail('https://via.placeholder.com/64x64/55AA55/FFFFFF?text=MC')
             .addFields(
                 {
-                    name: '🌐 Connection',
-                    value: `**IP:** \`${MINECRAFT_SERVER_IP}:${MINECRAFT_SERVER_PORT}\`\n**Status:** 🟢 Online`,
+                    name: '🌐 חיבור',
+                    value: `**IP:** \`${MINECRAFT_SERVER_IP}:${MINECRAFT_SERVER_PORT}\`\n**מצב:** 🟢 מחובר`,
                     inline: true
                 },
                 {

@@ -2,15 +2,15 @@ import { SlashCommandBuilder, PermissionFlagsBits } from 'discord.js';
 
 export const data = new SlashCommandBuilder()
     .setName('kick')
-    .setDescription('Kick a user from the server')
+    .setDescription('בעט משתמש מהשרת')
     .addUserOption(option =>
         option.setName('user')
-            .setDescription('User to kick')
+            .setDescription('משתמש לבעיטה')
             .setRequired(true)
     )
     .addStringOption(option =>
         option.setName('reason')
-            .setDescription('Reason for the kick')
+            .setDescription('סיבה לבעיטה')
             .setRequired(false)
     )
     .setDefaultMemberPermissions(PermissionFlagsBits.KickMembers);
@@ -20,12 +20,12 @@ export async function execute(interaction: any) {
 
     const guild = interaction.guild;
     if (!guild) {
-        return interaction.editReply({ content: 'This command can only be used in a server.' });
+        return interaction.editReply({ content: 'פקודה זו יכולה לשמש רק בשרת.' });
     }
 
     // Check if user has kick permissions
     if (!interaction.member.permissions.has(PermissionFlagsBits.KickMembers)) {
-        return interaction.editReply({ content: '❌ You don\'t have permission to kick members.' });
+        return interaction.editReply({ content: '❌ אין לך הרשאה לבעוט משתמשים.' });
     }
 
     try {

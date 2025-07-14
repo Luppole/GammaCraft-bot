@@ -3,7 +3,7 @@ import { readFile } from 'fs/promises';
 
 export const data = new SlashCommandBuilder()
     .setName('ip')
-    .setDescription('Get the minecraft server\'s IP address.');
+    .setDescription('קבל את כתובת ה-IP של שרת המיינקראפט');
 
 export async function execute(interaction: any) {
     try {
@@ -13,11 +13,10 @@ export async function execute(interaction: any) {
         await interaction.reply({ 
             content: rawText,
             allowedMentions: { users: [interaction.user.id] }
-        });
-    } catch (error) {
+        });        } catch (error) {
         console.error(error);
         if (!interaction.replied) {
-            await interaction.reply({ content: 'Failed to load server information.' });
+            await interaction.reply({ content: 'נכשל בטעינת מידע השרת.' });
         }
     }
 }

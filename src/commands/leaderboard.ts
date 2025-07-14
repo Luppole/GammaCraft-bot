@@ -3,10 +3,10 @@ import { UserLevelDAO } from '../dao';
 
 export const data = new SlashCommandBuilder()
     .setName('leaderboard')
-    .setDescription('Show the server leaderboard')
+    .setDescription('הצג את לוח התוצאות של השרת')
     .addIntegerOption(option =>
         option.setName('page')
-            .setDescription('Page number (default: 1)')
+            .setDescription('מספר עמוד (ברירת מחדל: 1)')
             .setRequired(false)
             .setMinValue(1)
     );
@@ -17,7 +17,7 @@ export async function execute(interaction: any) {
     
     const guild = interaction.guild;
     if (!guild) {
-        return interaction.editReply({ content: 'This command can only be used in a server.' });
+        return interaction.editReply({ content: 'פקודה זו יכולה לשמש רק בשרת.' });
     }
 
     try {
@@ -35,19 +35,19 @@ export async function execute(interaction: any) {
         ]) as any[];
         
         if (totalUsers === 0) {
-            return interaction.editReply({ content: 'No user data found. Start chatting to earn XP!' });
+            return interaction.editReply({ content: 'לא נמצא מידע משתמשים. התחל לכתוב כדי לצבור נסיון!' });
         }
 
         const totalPages = Math.ceil(totalUsers / itemsPerPage);
 
         if (page > totalPages) {
-            return interaction.editReply({ content: `Page ${page} doesn't exist. There are only ${totalPages} pages.` });
+            return interaction.editReply({ content: `עמוד ${page} לא קיים. יש רק ${totalPages} עמודים.` });
         }
 
         const embed = new EmbedBuilder()
             .setColor(0xFFD700)
-            .setTitle(`🏆 Server Leaderboard - Page ${page}/${totalPages}`)
-            .setFooter({ text: `Showing ${guildUsers.length} of ${totalUsers} users` })
+            .setTitle(`🏆 לוח התוצאות של השרת - עמוד ${page}/${totalPages}`)
+            .setFooter({ text: `מציג ${guildUsers.length} מתוך ${totalUsers} משתמשים` })
             .setTimestamp();
 
         let description = '';
@@ -62,18 +62,18 @@ export async function execute(interaction: any) {
             const userData = guildUsers[i];
             const rank = offset + i + 1;
             const user = members[i];
-            const userName = user ? user.displayName : 'Unknown User';
+            const userName = user ? user.displayName : 'משתמש לא ידוע';
             
             const medals = ['🥇', '🥈', '🥉'];
             const medal = rank <= 3 ? medals[rank - 1] : `${rank}.`;
             
-            description += `${medal} **${userName}** - Level ${userData.level} (${userData.xp} XP)\n`;
+            description += `${medal} **${userName}** - רמה ${userData.level} (${userData.xp} נסיון)\n`;
         }
 
         embed.setDescription(description);
         await interaction.editReply({ embeds: [embed] });
     } catch (error) {
         console.error('Error in leaderboard command:', error);
-        await interaction.editReply({ content: 'Failed to retrieve leaderboard data.' });
+        await interaction.editReply({ content: 'נכשל באחזור נתוני לוח התוצאות.' });
     }
 }

@@ -2,17 +2,17 @@ import { SlashCommandBuilder, PermissionFlagsBits, Message, Collection } from 'd
 
 export const data = new SlashCommandBuilder()
     .setName('purge')
-    .setDescription('Delete a specified number of messages')
+    .setDescription('מחק מספר מסוים של הודעות')
     .addIntegerOption(option =>
         option.setName('amount')
-            .setDescription('Number of messages to delete (1-100)')
+            .setDescription('מספר הודעות למחיקה (1-100)')
             .setRequired(true)
             .setMinValue(1)
             .setMaxValue(100)
     )
     .addUserOption(option =>
         option.setName('user')
-            .setDescription('Only delete messages from this user')
+            .setDescription('מחק רק הודעות של משתמש זה')
             .setRequired(false)
     )
     .setDefaultMemberPermissions(PermissionFlagsBits.ManageMessages);
@@ -22,12 +22,12 @@ export async function execute(interaction: any) {
 
     const guild = interaction.guild;
     if (!guild) {
-        return interaction.editReply({ content: 'This command can only be used in a server.' });
+        return interaction.editReply({ content: 'פקודה זו יכולה לשמש רק בשרת.' });
     }
 
     // Check if user has manage messages permissions
     if (!interaction.member.permissions.has(PermissionFlagsBits.ManageMessages)) {
-        return interaction.editReply({ content: '❌ You don\'t have permission to manage messages.' });
+        return interaction.editReply({ content: '❌ אין לך הרשאה לנהל הודעות.' });
     }
 
     try {

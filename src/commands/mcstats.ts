@@ -16,7 +16,7 @@ interface ServerCheck {
 
 export const data = new SlashCommandBuilder()
     .setName('mcstats')
-    .setDescription('Show Minecraft server statistics and uptime history');
+    .setDescription('הצג סטטיסטיקות שרת מיינקראפט והיסטוריית זמינות');
 
 export async function execute(interaction: any) {
     await interaction.deferReply();

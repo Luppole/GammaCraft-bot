@@ -22,15 +22,15 @@ declare module "discord.js" {
 }
 
 client.once(Events.ClientReady, async (readyClient) => {
-  console.log(`Logged in as ${readyClient.user.tag}!`);
+  console.log(`מחובר בתור ${readyClient.user.tag}!`);
   
   // Initialize database
   try {
     await initializeDatabase();
-    console.log('📊 Database initialized successfully');
+    console.log('📊 מסד הנתונים אותחל בהצלחה');
   } catch (error) {
-    console.error('Failed to initialize database:', error);
-    console.log('🔄 Falling back to JSON file storage...');
+    console.error('נכשל באתחול מסד הנתונים:', error);
+    console.log('🔄 עובר לאחסון קבצי JSON...');
     
     // Initialize in-memory/file-based storage as fallback
     initializeFileStorage();
@@ -39,7 +39,7 @@ client.once(Events.ClientReady, async (readyClient) => {
   // Initialize scheduled messages from database
   await initializeScheduledMessages(readyClient);
   
-  console.log('🎉 Bot is ready and all systems initialized!');
+  console.log('🎉 הבוט מוכן וכל המערכות אותחלו!');
 });
 
 function initializeFileStorage() {
@@ -97,7 +97,7 @@ client.on(Events.MessageCreate, async (message) => {
       console.log(`[LEVEL UP] ${message.author.username} reached Level ${userData.level}!`);
       
       // Send level up message
-      const levelUpMessage = `🎉 Congratulations ${user}! You've reached **Level ${userData.level}**! 🎉`;
+      const levelUpMessage = `🎉 מזל טוב ${user}! הגעת ל**רמה ${userData.level}**! 🎉`;
       message.channel.send(levelUpMessage);
       
       // Check for level roles
@@ -273,18 +273,18 @@ client.on(Events.MessageCreate, async (message) => {
         const { EmbedBuilder } = require('discord.js');
         const welcomeEmbed = new EmbedBuilder()
           .setColor(0x00FF7F) // Spring green color
-          .setTitle(`🎉 Welcome to ${guild.name}!`)
-          .setDescription(`Hey ${member.user}, glad to have you here!`)
+          .setTitle(`🎉 ברוכים הבאים ל-${guild.name}!`)
+          .setDescription(`היי ${member.user}, שמחים שאתה כאן!`)
           .setThumbnail(member.user.displayAvatarURL({ size: 256 }))
           .addFields(
             {
-              name: ' Server Info',
-              value: `**Total Members:** ${guild.memberCount.toLocaleString()}\n**You are member #${guild.memberCount}**`,
+              name: '📊 מידע שרת',
+              value: `**סה״כ חברים:** ${guild.memberCount.toLocaleString()}\n**אתה חבר מספר ${guild.memberCount}**`,
               inline: false
             }
           )
           .setFooter({ 
-            text: `Welcome to ${guild.name}`, 
+            text: `ברוכים הבאים ל-${guild.name}`, 
             iconURL: guild.iconURL() || undefined 
           })
           .setTimestamp();

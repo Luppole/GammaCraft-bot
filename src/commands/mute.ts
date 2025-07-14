@@ -7,20 +7,20 @@ const tempMutes = new Map<string, NodeJS.Timeout>();
 
 export const data = new SlashCommandBuilder()
     .setName('mute')
-    .setDescription('Mute a user by giving them the Muted role')
+    .setDescription('השתק משתמש על ידי מתן תפקיד מושתק')
     .addUserOption(option =>
         option.setName('user')
-            .setDescription('User to mute')
+            .setDescription('משתמש להשתקה')
             .setRequired(true)
     )
     .addStringOption(option =>
         option.setName('duration')
-            .setDescription('Duration (e.g., 5m, 1h, 2d) - leave empty for permanent')
+            .setDescription('משך זמן (לדוגמה: 5m, 1h, 2d) - השאר ריק להשתקה קבועה')
             .setRequired(false)
     )
     .addStringOption(option =>
         option.setName('reason')
-            .setDescription('Reason for the mute')
+            .setDescription('סיבה להשתקה')
             .setRequired(false)
     )
     .setDefaultMemberPermissions(PermissionFlagsBits.ModerateMembers);

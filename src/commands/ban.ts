@@ -2,20 +2,20 @@ import { SlashCommandBuilder, PermissionFlagsBits } from 'discord.js';
 
 export const data = new SlashCommandBuilder()
     .setName('ban')
-    .setDescription('Ban a user from the server')
+    .setDescription('אסור משתמש מהשרת')
     .addUserOption(option =>
         option.setName('user')
-            .setDescription('User to ban')
+            .setDescription('משתמש לאיסור')
             .setRequired(true)
     )
     .addStringOption(option =>
         option.setName('reason')
-            .setDescription('Reason for the ban')
+            .setDescription('סיבה לאיסור')
             .setRequired(false)
     )
     .addIntegerOption(option =>
         option.setName('deletedays')
-            .setDescription('Delete messages from the last X days (0-7)')
+            .setDescription('מחק הודעות מה-X ימים האחרונים (0-7)')
             .setRequired(false)
             .setMinValue(0)
             .setMaxValue(7)
@@ -27,31 +27,31 @@ export async function execute(interaction: any) {
 
     const guild = interaction.guild;
     if (!guild) {
-        return interaction.editReply({ content: 'This command can only be used in a server.' });
+        return interaction.editReply({ content: 'פקודה זו יכולה לשמש רק בשרת.' });
     }
 
     // Check if user has ban permissions
     if (!interaction.member.permissions.has(PermissionFlagsBits.BanMembers)) {
-        return interaction.editReply({ content: '❌ You don\'t have permission to ban members.' });
+        return interaction.editReply({ content: '❌ אין לך הרשאה לאסור משתמשים.' });
     }
 
     try {
         const targetUser = interaction.options.getUser('user');
-        const reason = interaction.options.getString('reason') || 'No reason provided';
+        const reason = interaction.options.getString('reason') || 'לא סופקה סיבה';
         const deleteMessageDays = interaction.options.getInteger('deletedays') || 0;
 
         if (!targetUser) {
-            return interaction.editReply({ content: '❌ User not found.' });
+            return interaction.editReply({ content: '❌ משתמש לא נמצא.' });
         }
 
         // Check if target is the command user
         if (targetUser.id === interaction.user.id) {
-            return interaction.editReply({ content: '❌ You cannot ban yourself.' });
+            return interaction.editReply({ content: '❌ אתה לא יכול לאסור את עצמך.' });
         }
 
         // Check if target is the bot
         if (targetUser.id === interaction.client.user.id) {
-            return interaction.editReply({ content: '❌ I cannot ban myself.' });
+            return interaction.editReply({ content: '❌ אני לא יכול לאסור את עצמי.' });
         }
 
         // Try to get member (might not be in server)

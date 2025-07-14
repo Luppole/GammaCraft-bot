@@ -3,28 +3,28 @@ import { ScheduledMessageDAO } from '../dao';
 
 export const data = new SlashCommandBuilder()
     .setName('schedule')
-    .setDescription('Create a scheduled recurring message')
+    .setDescription('צור הודעה מתוזמנת חוזרת')
     .addStringOption(option =>
         option.setName('message')
-            .setDescription('The message to send')
+            .setDescription('ההודעה לשליחה')
             .setRequired(true)
     )
     .addChannelOption(option =>
         option.setName('channel')
-            .setDescription('The channel to send the message to')
+            .setDescription('הערוץ לשליחת ההודעה')
             .setRequired(true)
             .addChannelTypes(ChannelType.GuildText)
     )
     .addIntegerOption(option =>
         option.setName('interval')
-            .setDescription('Interval in hours (1-168)')
+            .setDescription('מרווח בשעות (1-168)')
             .setRequired(true)
             .setMinValue(1)
             .setMaxValue(168)
     )
     .addStringOption(option =>
         option.setName('name')
-            .setDescription('A name for this scheduled message')
+            .setDescription('שם להודעה המתוזמנת הזו')
             .setRequired(true)
     )
     .setDefaultMemberPermissions(PermissionFlagsBits.Administrator);

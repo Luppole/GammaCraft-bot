@@ -10,17 +10,17 @@ const statusChannels = new Map<string, string>(); // guildId -> channelId
 
 export const data = new SlashCommandBuilder()
     .setName('mcserver')
-    .setDescription('Create or manage a voice channel that shows Minecraft server status')
+    .setDescription('צור או נהל ערוץ קולי שמציג מצב שרת המיינקראפט')
     .setDefaultMemberPermissions(PermissionFlagsBits.Administrator)
     .addSubcommand(subcommand =>
         subcommand
             .setName('create')
-            .setDescription('Create a voice channel that shows Minecraft server status')
+            .setDescription('צור ערוץ קולי שמציג מצב שרת המיינקראפט')
     )
     .addSubcommand(subcommand =>
         subcommand
             .setName('stop')
-            .setDescription('Stop monitoring and remove the status channel')
+            .setDescription('הפסק מעקב והסר את ערוץ המצב')
     );
 
 export async function execute(interaction: any) {

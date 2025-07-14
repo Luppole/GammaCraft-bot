@@ -3,10 +3,10 @@ import { StatsChannelDAO } from '../dao';
 
 export const data = new SlashCommandBuilder()
   .setName('setupstats')
-  .setDescription('Creates locked voice channels showing member stats.')
+  .setDescription('צור ערוצי קול נעולים המציגים סטטיסטיקות חברים')
   .addRoleOption(option =>
     option.setName('role')
-      .setDescription('The role to count members for')
+      .setDescription('התפקיד לספירת חברים')
       .setRequired(true)
   )
   .setDefaultMemberPermissions(PermissionFlagsBits.Administrator);
@@ -16,15 +16,15 @@ export async function execute(interaction: any) {
   await interaction.deferReply({ flags: 64 });
   
   const guild = interaction.guild;
-  if (!guild) return interaction.editReply({ content: 'This command can only be used in a server.' });
+  if (!guild) return interaction.editReply({ content: 'פקודה זו יכולה לשמש רק בשרת.' });
 
   // Only allow admins
   if (!interaction.memberPermissions.has(PermissionFlagsBits.Administrator)) {
-    return interaction.editReply({ content: 'Only administrators can use this command.' });
+    return interaction.editReply({ content: 'רק מנהלים יכולים להשתמש בפקודה זו.' });
   }
 
   const role = interaction.options.getRole('role');
-  if (!role) return interaction.editReply({ content: 'Role not found.' });
+  if (!role) return interaction.editReply({ content: 'תפקיד לא נמצא.' });
 
   try {
 
