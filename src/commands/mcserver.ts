@@ -1,5 +1,6 @@
 import { SlashCommandBuilder, PermissionFlagsBits, ChannelType } from 'discord.js';
 import { status } from 'minecraft-server-util';
+import { safeDeferReply, safeReply, handleInteractionError } from '../helperFunctions/interactionHelpers';
 
 const MINECRAFT_SERVER_IP = '129.159.148.234';
 const MINECRAFT_SERVER_PORT = 25565; // Default Minecraft port
@@ -24,24 +25,30 @@ export const data = new SlashCommandBuilder()
     );
 
 export async function execute(interaction: any) {
-    await interaction.deferReply({ flags: 64 });
-    
-    // Only allow admins
-    if (!interaction.memberPermissions?.has(PermissionFlagsBits.Administrator)) {
-        return interaction.editReply({ content: 'Only administrators can use this command.' });
-    }
+    try {
+        // Use helper function to safely defer reply
+        await safeDeferReply(interaction, { ephemeral: true });
+        
+        // Only allow admins
+        if (!interaction.memberPermissions?.has(PermissionFlagsBits.Administrator)) {
+            return safeReply(interaction, 'Only administrators can use this command.');
+        }
 
-    const guild = interaction.guild;
-    if (!guild) {
-        return interaction.editReply({ content: 'This command can only be used in a server.' });
-    }
+        const guild = interaction.guild;
+        if (!guild) {
+            return safeReply(interaction, 'This command can only be used in a server.');
+        }
 
-    const subcommand = interaction.options.getSubcommand();
+        const subcommand = interaction.options.getSubcommand();
 
-    if (subcommand === 'create') {
-        await createStatusChannel(interaction, guild);
-    } else if (subcommand === 'stop') {
-        await stopMonitoring(interaction, guild);
+        if (subcommand === 'create') {
+            await createStatusChannel(interaction, guild);
+        } else if (subcommand === 'stop') {
+            await stopMonitoring(interaction, guild);
+        }
+    } catch (error) {
+        await handleInteractionError(interaction, error, 'mcserver', 
+            'שגיאה בביצוע פקודת הניהול של שרת המיינקראפט. נסה שוב.');
     }
 }
 
@@ -49,9 +56,9 @@ async function createStatusChannel(interaction: any, guild: any) {
     try {
         // Check if monitoring is already active for this guild
         if (monitoringIntervals.has(guild.id)) {
-            return interaction.editReply({ 
-                content: '❌ A Minecraft server status channel is already active. Use `/mcserver stop` to stop monitoring first.' 
-            });
+            return safeReply(interaction, 
+                '❌ A Minecraft server status channel is already active. Use `/mcserver stop` to stop monitoring first.' 
+            );
         }
 
         // Create the voice channel
@@ -72,13 +79,13 @@ async function createStatusChannel(interaction: any, guild: any) {
         // Start monitoring
         await startMonitoring(guild.id, channel);
 
-        await interaction.editReply({ 
-            content: `✅ Created Minecraft server status channel: <#${channel.id}>\n🔄 Monitoring ${MINECRAFT_SERVER_IP} every 60 seconds.` 
-        });
+        await safeReply(interaction, 
+            `✅ Created Minecraft server status channel: <#${channel.id}>\n🔄 Monitoring ${MINECRAFT_SERVER_IP} every 60 seconds.` 
+        );
 
     } catch (error) {
         console.error('Error creating MC server status channel:', error);
-        await interaction.editReply({ content: '❌ Failed to create status channel. Please check bot permissions.' });
+        await safeReply(interaction, '❌ Failed to create status channel. Please check bot permissions.');
     }
 }
 
@@ -88,7 +95,7 @@ async function stopMonitoring(interaction: any, guild: any) {
         const channelId = statusChannels.get(guild.id);
 
         if (!interval || !channelId) {
-            return interaction.editReply({ content: '❌ No active Minecraft server monitoring found for this server.' });
+            return safeReply(interaction, '❌ No active Minecraft server monitoring found for this server.');
         }
 
         // Clear the interval
@@ -106,11 +113,11 @@ async function stopMonitoring(interaction: any, guild: any) {
             console.log('Channel may have already been deleted:', channelError);
         }
 
-        await interaction.editReply({ content: '✅ Stopped Minecraft server monitoring and removed status channel.' });
+        await safeReply(interaction, '✅ Stopped Minecraft server monitoring and removed status channel.');
 
     } catch (error) {
         console.error('Error stopping MC server monitoring:', error);
-        await interaction.editReply({ content: '❌ Failed to stop monitoring. Please try again.' });
+        await safeReply(interaction, '❌ Failed to stop monitoring. Please try again.');
     }
 }
 
