@@ -10,18 +10,21 @@ export const data = new SlashCommandBuilder()
     );
 
 export async function execute(interaction: any) {
-    await interaction.deferReply();
-    
-    const username = interaction.options.getString('username');
-    
-    // Validate username
-    if (!/^[a-zA-Z0-9_]{3,16}$/.test(username)) {
-        return interaction.editReply({ 
-            content: 'שם משתמש לא תקין! שמות משתמש במיינקראפט חייבים להיות באורך 3-16 תווים ולכלול רק אותיות, מספרים וקו תחתון.' 
-        });
-    }
-
     try {
+        // Check if interaction is already acknowledged to prevent double acknowledgment
+        if (!interaction.deferred && !interaction.replied) {
+            await interaction.deferReply();
+        }
+        
+        const username = interaction.options.getString('username');
+    
+        // Validate username
+        if (!/^[a-zA-Z0-9_]{3,16}$/.test(username)) {
+            return interaction.editReply({ 
+                content: 'שם משתמש לא תקין! שמות משתמש במיינקראפט חייבים להיות באורך 3-16 תווים ולכלול רק אותיות, מספרים וקו תחתון.' 
+            });
+        }
+
         // First, verify the player exists using Mojang API
         const playerResponse = await fetch(`https://api.mojang.com/users/profiles/minecraft/${username}`);
         
@@ -70,9 +73,20 @@ export async function execute(interaction: any) {
         await interaction.editReply({ embeds: [embed] });
 
     } catch (error) {
-        console.error('Error fetching skin data:', error);
-        await interaction.editReply({ 
-            content: `❌ לא ניתן לטעון נתוני סקין עבור שחקן "${username}". השחקן עלול לא להתקיים או שהשירות זמנית לא זמין.` 
-        });
+        console.error('שגיאה בטעינת נתוני סקין:', error);
+        
+        // Better error handling for already acknowledged interactions
+        try {
+            const username = interaction.options.getString('username') || 'לא ידוע';
+            const errorMessage = `❌ לא ניתן לטעון נתוני סקין עבור שחקן "${username}". השחקן עלול לא להתקיים או שהשירות זמנית לא זמין.`;
+            
+            if (interaction.deferred && !interaction.replied) {
+                await interaction.editReply({ content: errorMessage });
+            } else if (!interaction.replied && !interaction.deferred) {
+                await interaction.reply({ content: errorMessage, ephemeral: true });
+            }
+        } catch (replyError) {
+            console.error('שגיאה בשליחת תגובת שגיאה:', replyError);
+        }
     }
 }

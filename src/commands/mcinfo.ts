@@ -1,5 +1,6 @@
 import { SlashCommandBuilder, EmbedBuilder } from 'discord.js';
 import { status } from 'minecraft-server-util';
+import { safeDeferReply, safeReply, handleInteractionError } from '../helperFunctions/interactionHelpers';
 
 const MINECRAFT_SERVER_IP = '129.159.148.234';
 const MINECRAFT_SERVER_PORT = 25565;
@@ -9,9 +10,10 @@ export const data = new SlashCommandBuilder()
     .setDescription('קבל מידע מפורט על שרת המיינקראפט');
 
 export async function execute(interaction: any) {
-    await interaction.deferReply();
-
     try {
+        // Use helper function to safely defer reply
+        await safeDeferReply(interaction);
+
         // Faster timeout to prevent Discord interaction timeout
         const serverStatus = await Promise.race([
             status(MINECRAFT_SERVER_IP, MINECRAFT_SERVER_PORT, { timeout: 3000 }),
@@ -57,27 +59,10 @@ export async function execute(interaction: any) {
             embed.setThumbnail(`data:image/png;base64,${serverStatus.favicon}`);
         }
 
-        await interaction.editReply({ embeds: [embed] });
+        await safeReply(interaction, { embeds: [embed] });
 
     } catch (error) {
-        const errorEmbed = new EmbedBuilder()
-            .setColor(0xFF0000)
-            .setTitle('🔴 Server Offline')
-            .setDescription('Cannot retrieve server information')
-            .addFields(
-                {
-                    name: '🌐 Connection',
-                    value: `**IP:** \`${MINECRAFT_SERVER_IP}:${MINECRAFT_SERVER_PORT}\`\n**Status:** 🔴 Offline`,
-                    inline: false
-                },
-                {
-                    name: 'Error',
-                    value: 'Server is unreachable or offline',
-                    inline: false
-                }
-            )
-            .setTimestamp();
-
-        await interaction.editReply({ embeds: [errorEmbed] });
+        await handleInteractionError(interaction, error, 'mcinfo', 
+            'לא ניתן לקבל מידע על השרת. השרת עלול להיות לא מחובר או שהשירות זמנית לא זמין.');
     }
 }
